@@ -4,84 +4,58 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ছবি এডিটর</title>
-    <style>
-        canvas {
-            border: 1px solid black;
-        }
-    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
 </head>
 <body>
     <h1>ছবি আপলোড করুন এবং এডিট করুন</h1>
     <input type="file" id="imageUpload" accept="image/*">
-    <canvas id="canvas" style="display:none;"></canvas>
     <br>
-    <img id="output" style="max-width: 100%; display: none;">
+    <canvas id="canvas"></canvas>
     <br>
-    <button id="editButton" style="display:none;">এডিট করুন</button>
     <button id="downloadButton" style="display:none;">ডাউনলোড করুন</button>
 
     <script>
-        const imageUpload = document.getElementById('imageUpload');
-        const canvas = document.getElementById('canvas');
-        const context = canvas.getContext('2d');
-        const output = document.getElementById('output');
-        const editButton = document.getElementById('editButton');
-        const downloadButton = document.getElementById('downloadButton');
+        let img;
+        let canvas;
 
-        imageUpload.addEventListener('change', function(event) {
+        function setup() {
+            canvas = createCanvas(800, 600);
+            canvas.id('canvas');
+            canvas.hide();
+        }
+
+        document.getElementById('imageUpload').addEventListener('change', function(event) {
             const file = event.target.files[0];
             const reader = new FileReader();
             reader.onload = function(e) {
-                output.src = e.target.result;
-                output.style.display = 'block';
-                editButton.style.display = 'block';
-            }
+                img = loadImage(e.target.result, function() {
+                    image(img, 0, 0, width, height);
+                    pencilEffect();
+                    canvas.show();
+                    document.getElementById('downloadButton').style.display = 'block';
+                });
+            };
             reader.readAsDataURL(file);
         });
 
-        editButton.addEventListener('click', function() {
-            canvas.width = output.width;
-            canvas.height = output.height;
-            context.drawImage(output, 0, 0);
-            createPencilArt();
-            output.style.display = 'none';
-            canvas.style.display = 'block';
-            downloadButton.style.display = 'block';
-        });
-
-        function createPencilArt() {
-            const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-            const data = imageData.data;
-            const newImageData = context.createImageData(imageData);
-
-            for (let i = 0; i < data.length; i += 4) {
-                const avgColor = (data[i] + data[i + 1] + data[i + 2]) / 3;
-                newImageData.data[i] = avgColor;     // Red
-                newImageData.data[i + 1] = avgColor; // Green
-                newImageData.data[i + 2] = avgColor; // Blue
-                newImageData.data[i + 3] = 255;      // Alpha
-            }
-
-            // Applying a simple edge detection filter to simulate pencil drawing
-            for (let y = 1; y < canvas.height - 1; y++) {
-                for (let x = 1; x < canvas.width - 1; x++) {
-                    const idx = (y * canvas.width + x) * 4;
-                    const avgColor = (newImageData.data[idx] + newImageData.data[idx + 4] + newImageData.data[idx + canvas.width * 4] +
-                                      newImageData.data[idx - 4] + newImageData.data[idx - canvas.width * 4]) / 5;
-                    newImageData.data[idx] = avgColor;
-                    newImageData.data[idx + 1] = avgColor;
-                    newImageData.data[idx + 2] = avgColor;
+        function pencilEffect() {
+            loadPixels();
+            for (let i = 0; i < pixels.length; i += 4) {
+                // Get average of RGB values
+                const avg = (pixels[i] + pixels[i + 1] + pixels[i + 2]) / 3;
+                pixels[i] = avg;     // Red
+                pixels[i + 1] = avg; // Green
+                pixels[i + 2] = avg; // Blue
+                // Make it more sketchy
+                if (avg > 200) {
+                    pixels[i + 3] = 0; // Make light pixels transparent
                 }
             }
-
-            context.putImageData(newImageData, 0, 0);
+            updatePixels();
         }
 
-        downloadButton.addEventListener('click', function() {
-            const link = document.createElement('a');
-            link.download = 'edited_image.png';
-            link.href = canvas.toDataURL();
-            link.click();
+        document.getElementById('downloadButton').addEventListener('click', function() {
+            saveCanvas(canvas, 'edited_image', 'png');
         });
     </script>
 </body>
