@@ -43,29 +43,38 @@
             canvas.width = output.width;
             canvas.height = output.height;
             context.drawImage(output, 0, 0);
-            applyPencilEffect();
+            createPencilArt();
             output.style.display = 'none';
             canvas.style.display = 'block';
             downloadButton.style.display = 'block';
         });
 
-        function applyPencilEffect() {
+        function createPencilArt() {
             const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
             const data = imageData.data;
+            const newImageData = context.createImageData(imageData);
 
             for (let i = 0; i < data.length; i += 4) {
-                const average = (data[i] + data[i + 1] + data[i + 2]) / 3;
-                data[i] = average;     // Red
-                data[i + 1] = average; // Green
-                data[i + 2] = average; // Blue
-                data[i + 3] = 255;     // Alpha
+                const avgColor = (data[i] + data[i + 1] + data[i + 2]) / 3;
+                newImageData.data[i] = avgColor;     // Red
+                newImageData.data[i + 1] = avgColor; // Green
+                newImageData.data[i + 2] = avgColor; // Blue
+                newImageData.data[i + 3] = 255;      // Alpha
             }
 
-            context.putImageData(imageData, 0, 0);
-            // এখানে আপনি পেন্সিল এফেক্ট যোগ করতে পারেন
-            context.globalCompositeOperation = 'source-in';
-            context.fillStyle = 'rgba(255, 255, 255, 0.5)';
-            context.fillRect(0, 0, canvas.width, canvas.height);
+            // Applying a simple edge detection filter to simulate pencil drawing
+            for (let y = 1; y < canvas.height - 1; y++) {
+                for (let x = 1; x < canvas.width - 1; x++) {
+                    const idx = (y * canvas.width + x) * 4;
+                    const avgColor = (newImageData.data[idx] + newImageData.data[idx + 4] + newImageData.data[idx + canvas.width * 4] +
+                                      newImageData.data[idx - 4] + newImageData.data[idx - canvas.width * 4]) / 5;
+                    newImageData.data[idx] = avgColor;
+                    newImageData.data[idx + 1] = avgColor;
+                    newImageData.data[idx + 2] = avgColor;
+                }
+            }
+
+            context.putImageData(newImageData, 0, 0);
         }
 
         downloadButton.addEventListener('click', function() {
